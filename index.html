@@ -784,6 +784,147 @@
     font-size: 11px;
     font-weight: 600;
   }
+
+  /* ── МОБИЛЬНАЯ АДАПТАЦИЯ ─────────────────────────────── */
+
+  /* Кнопка-гамбургер (только mobile) */
+  #sidebar-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+    border-radius: 6px;
+  }
+  #sidebar-toggle:hover { background: rgba(255,255,255,0.12); }
+
+  /* Оверлей для закрытия drawer */
+  #sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 149;
+    cursor: pointer;
+  }
+  #sidebar-overlay.show { display: block; }
+
+  @media (max-width: 768px) {
+
+    /* Шапка — компактная */
+    #app-header {
+      padding: 0 14px;
+      height: 52px;
+    }
+    .header-subtitle { display: none; }
+    .header-logo { width: 28px; height: 28px; font-size: 15px; }
+    .header-title { font-size: 14px; }
+    #sidebar-toggle { display: flex; align-items: center; }
+
+    /* Боковая панель — drawer (скрыта, выезжает слева) */
+    #sidebar {
+      position: fixed;
+      top: 52px;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      z-index: 150;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    }
+    #sidebar.open { transform: translateX(0); }
+
+    /* Основная зона — полная ширина */
+    #content-area {
+      padding: 14px 14px 30px;
+      min-height: calc(100vh - 52px);
+    }
+
+    /* Тулбар формы — стек на мобильном */
+    #form-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+    .toolbar-left { flex-wrap: wrap; }
+    .toolbar-right {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .toolbar-right .btn { justify-content: center; font-size: 12px; padding: 7px 4px; }
+
+    /* Поля формы — одна колонка */
+    .field-row.cols-2 > .field,
+    .field-row.cols-3 > .field,
+    .field-row.cols-4 > .field {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    /* Витальные признаки — 2 колонки */
+    .vitals-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Секции — меньше padding */
+    .section-body { padding: 12px; }
+    .section-head { padding: 10px 14px; }
+    .section-title { font-size: 12px; }
+
+    /* Таблицы — горизонтальный скролл */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .data-table { min-width: 520px; }
+    .section-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* Кнопки добавления в таблицах */
+    .add-rx-btn, .add-entry-btn, .add-allergy-btn, .add-row-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Диагнозы и препараты — убрать горизонтальный scroll */
+    .diagnosis-block, .rx-block { padding: 10px 12px; }
+
+    /* Динамика — full width */
+    .dynamics-entry { padding: 12px; }
+
+    /* Шапка документа в форме */
+    .doc-header { padding: 16px 12px 10px; }
+    .doc-institution { font-size: 11px; }
+    .doc-title { font-size: 16px; }
+
+    /* Кнопки нижней панели сайдбара */
+    .sidebar-footer .btn { width: 100%; justify-content: center; margin-bottom: 6px; }
+    .sidebar-footer .btn:last-child { margin-bottom: 0; }
+
+    /* Приветственный экран */
+    #welcome-screen { padding: 24px 16px; }
+    .welcome-title { font-size: 22px; }
+    .welcome-sub { font-size: 13px; }
+    .welcome-actions { flex-direction: column; align-items: stretch; }
+    .welcome-actions .btn { justify-content: center; }
+
+    /* Модальное окно */
+    .modal-box { padding: 20px 16px; }
+
+    /* Убрать отступы у скроллбара */
+    ::-webkit-scrollbar { width: 3px; }
+  }
+
+  @media (max-width: 400px) {
+    /* Очень маленькие экраны */
+    .toolbar-right { grid-template-columns: 1fr 1fr; }
+    .vitals-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .header-title { font-size: 13px; }
+    .patient-badge { font-size: 11px; padding: 4px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -791,6 +932,7 @@
 <!-- ШАПКА -->
 <header id="app-header">
   <div class="header-brand">
+    <button id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Открыть меню">☰</button>
     <div class="header-logo">МБ</div>
     <div>
       <div class="header-title">МедУчёт</div>
@@ -801,6 +943,9 @@
     <button class="btn btn-white btn-sm no-print" onclick="newPatient()">＋ Новый пациент</button>
   </div>
 </header>
+
+<!-- ОВЕРЛЕЙ SIDEBAR (mobile) -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <!-- ОСНОВНОЙ LAYOUT -->
 <div id="main-layout">
@@ -2056,14 +2201,42 @@ document.getElementById('modal').addEventListener('click', function(e) {
 });
 
 // ── ЗАПРЕТ ВСТАВКИ ────────────────────────────────────────────────
-// Блокируем paste на всём документе — охватывает и динамически
-// созданные поля (назначения, динамика, лабораторные строки).
 document.addEventListener('paste', function(e) {
   const tag = e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
     e.preventDefault();
     showToast('Вставка текста запрещена — вводите данные вручную', 'error');
   }
+});
+
+// ── МОБИЛЬНЫЙ SIDEBAR (DRAWER) ────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.contains('open');
+  if (isOpen) {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  } else {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+  }
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// Закрывать drawer при выборе пациента на мобильном
+const origSelectPatient = typeof selectPatient === 'function' ? selectPatient : null;
+document.getElementById('patient-list').addEventListener('click', function(e) {
+  if (window.innerWidth <= 768) closeSidebar();
+});
+
+// Закрывать drawer при нажатии Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSidebar();
 });
 </script>
 </body>
